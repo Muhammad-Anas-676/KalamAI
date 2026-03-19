@@ -1,0 +1,13 @@
+.buildozer/
+bin/
+build/
+__pycache__/
+*.pyc
+*.pyo
+*.onnx
+*.onnx.json
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

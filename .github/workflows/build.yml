@@ -2,7 +2,7 @@ name: Build KalamAI APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, Main ]
   workflow_dispatch:
 
 env:
@@ -33,13 +33,13 @@ jobs:
             autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            ccache \
-            lld \
-            build-essential
+            ccache build-essential
 
-      - name: Set JAVA_HOME
+      - name: Force Java 17
         run: |
-          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_ENV
+          sudo update-java-alternatives --set java-1.17.0-openjdk-amd64
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
           java -version
 
       - name: Install Python build tools
@@ -47,53 +47,39 @@ jobs:
           pip install --upgrade pip setuptools wheel
           pip install buildozer==1.5.0
           pip install cython==0.29.37
-          pip install kivy==2.3.0
 
-      - name: Cache Buildozer global directory
+      - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-${{ runner.os }}-py310-${{ hashFiles('app/buildozer.spec') }}
+          key: buildozer-${{ runner.os }}-java17-${{ hashFiles('app/buildozer.spec') }}
           restore-keys: |
-            buildozer-${{ runner.os }}-py310-
-            buildozer-${{ runner.os }}-
+            buildozer-${{ runner.os }}-java17-
 
-      - name: Cache pip packages
+      - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ runner.os }}-py310-${{ hashFiles('app/buildozer.spec') }}
+          key: pip-${{ runner.os }}-${{ hashFiles('app/buildozer.spec') }}
 
-      - name: Verify project structure
-        run: |
-          echo "=== Project Structure ==="
-          find . -type f | grep -v ".git" | sort
-          echo ""
-          echo "=== main.py first 10 lines ==="
-          head -10 app/main.py
-          echo ""
-          echo "=== buildozer.spec requirements line ==="
-          grep "requirements" app/buildozer.spec
-
-      - name: Build APK with Buildozer
+      - name: Build APK
         working-directory: app
         run: |
           buildozer android debug 2>&1 | tee build.log
-          echo "Exit code: $?"
         env:
           BUILDOZER_WARN_ON_ROOT: "0"
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
-      - name: Check build output
+      - name: Check output
         if: always()
         working-directory: app
         run: |
-          echo "=== Checking bin/ directory ==="
-          ls -la bin/ 2>/dev/null || echo "bin/ directory does not exist"
-          echo ""
-          echo "=== Last 100 lines of build log ==="
-          tail -100 build.log 2>/dev/null || echo "No build log found"
+          echo "=== bin/ ==="
+          ls -la bin/ 2>/dev/null || echo "bin/ not found"
+          echo "=== Last 30 log lines ==="
+          tail -30 build.log 2>/dev/null || echo "no log"
 
-      - name: Upload APK (if exists)
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -102,10 +88,10 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Upload full build log
+      - name: Upload build log
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build-log-full
+          name: build-log
           path: app/build.log
           retention-days: 14

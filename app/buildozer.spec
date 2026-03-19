@@ -6,7 +6,7 @@ source.dir      = .
 source.include_exts = py,png,jpg,kv,atlas,json
 version         = 1.0.0
 entrypoint      = main.py
-requirements    = python3,kivy==2.3.0,piper-tts,onnxruntime,numpy,requests
+requirements = python3,kivy==2.3.0,numpy,requests,pillow
 android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE
 android.minapi  = 21
 android.api     = 33
